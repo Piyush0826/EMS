@@ -3,7 +3,6 @@ import User from '../models/User.js';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import nodemailer from 'nodemailer';
-import axios from 'axios';
 
 // Create transporter function (lazy initialization)
 const getTransporter = () => {
@@ -18,41 +17,9 @@ const getTransporter = () => {
     });
 };
 
-// CAPTCHA Verification Function
-const verifyCaptcha = async (captchaToken) => {
-    try {
-        const secretKey = process.env.RECAPTCHA_SECRET_KEY || '6LeIxAcTAAAAAGG-vFI1TnRWxMZNFuojJ4WifJWe';
-        
-        const response = await axios.post(
-            `https://www.google.com/recaptcha/api/siteverify`,
-            `secret=${secretKey}&response=${captchaToken}`,
-            {
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded'
-                }
-            }
-        );
-
-        return response.data.success && (response.data.score > 0.5 || response.data.success === true);
-    } catch (error) {
-        console.error('CAPTCHA verification error:', error.message);
-        return false;
-    }
-};
-
 const login = async (req, res) => {
     try {
-        const { email, password, captchaToken } = req.body;
-
-        // Verify CAPTCHA
-        if (!captchaToken) {
-            return res.status(400).json({ success: false, message: "CAPTCHA token is required" });
-        }
-
-        const isCaptchaValid = await verifyCaptcha(captchaToken);
-        if (!isCaptchaValid) {
-            return res.status(400).json({ success: false, message: "CAPTCHA verification failed. Please try again." });
-        }
+        const { email, password } = req.body;
 
         const user = await User.findOne({ email });
 

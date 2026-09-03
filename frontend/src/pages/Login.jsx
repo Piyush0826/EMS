@@ -1,7 +1,6 @@
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import axios from 'axios';
 import { useNavigate, Link } from 'react-router-dom';
-import ReCAPTCHA from 'react-google-recaptcha';
 import { useAuth } from '../context/authContext.jsx';
 import { API_BASE_URL } from '../config/api';
 
@@ -12,48 +11,24 @@ const Login = () => {
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [captchaVerified, setCaptchaVerified] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [forgotEmail, setForgotEmail] = useState('');
   const [forgotLoading, setForgotLoading] = useState(false);
   
-  const recaptchaRef = useRef();
   const { login } = useAuth();
   const navigate = useNavigate();
-
-  // Handle CAPTCHA verification
-  const handleCaptchaChange = (token) => {
-    if (token) {
-      setCaptchaVerified(true);
-    } else {
-      setCaptchaVerified(false);
-    }
-  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
     setSuccess(null);
 
-    // Check if CAPTCHA is verified
-    if (!captchaVerified) {
-      setError('Please verify the CAPTCHA');
-      return;
-    }
-
     setLoading(true);
 
     try {
-      // Get CAPTCHA token
-      const captchaToken = recaptchaRef.current.getValue();
-
       const response = await axios.post(
         `${API_BASE_URL}/api/auth/login`,
-        { 
-          email, 
-          password,
-          captchaToken // Send CAPTCHA token to backend for verification
-        }
+        { email, password }
       );
 
       if (response.data.success) {
@@ -69,9 +44,6 @@ const Login = () => {
     } catch (error) {
       const message = error.response?.data?.message || error.response?.data?.error;
       setError(message || "Server Error: Please try again later.");
-      // Reset CAPTCHA on error
-      recaptchaRef.current.reset();
-      setCaptchaVerified(false);
     } finally {
       setLoading(false);
     }
@@ -226,24 +198,6 @@ const Login = () => {
                       Forgot Password?
                     </button>
                   </div>
-
-                  {/* CAPTCHA Verification */}
-                  <div className="flex justify-center py-2">
-                    <ReCAPTCHA
-                      ref={recaptchaRef}
-                      sitekey="6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI"
-                      onChange={handleCaptchaChange}
-                      theme="light"
-                      size="normal"
-                    />
-                  </div>
-
-                  {/* CAPTCHA Error Message */}
-                  {!captchaVerified && error?.includes('CAPTCHA') && (
-                    <div className="text-center text-red-500 text-xs sm:text-sm font-poppins">
-                      ⚠️ Please verify the CAPTCHA
-                    </div>
-                  )}
 
                   {/* Login Button */}
                   <button 
