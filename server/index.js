@@ -62,6 +62,24 @@ app.get('/test', (req, res) => {
   res.json({ message: 'Server is working', uploads_path: path.join(__dirname, 'public', 'uploads') });
 });
 
+let databaseConnection
+
+const ensureDatabaseConnection = async (req, res, next) => {
+  try {
+    databaseConnection ??= connectDB().catch((error) => {
+      databaseConnection = undefined
+      throw error
+    })
+    await databaseConnection
+    next()
+  } catch (error) {
+    console.error('Database connection failed:', error)
+    res.status(503).json({ success: false, message: 'Database unavailable' })
+  }
+}
+
+app.use('/api', ensureDatabaseConnection)
+
 // Routes
 app.use("/api/auth", authRouter)
 app.use("/api/department", departmentRouter)
@@ -79,25 +97,20 @@ app.use((err, req, res, next) => {
   })
 })
 
-// Start server only after DB connects
 const PORT = process.env.PORT || 5000
 
-connectDB()
-  .then(() => {
-    console.log('Database connection successful')
-    const server = app.listen(PORT, '0.0.0.0', () => {
-      console.log(`Server listening on http://0.0.0.0:${PORT}`)
-      console.log(`Test endpoint: http://localhost:${PORT}/test`)
-      console.log(`Uploads route: http://localhost:${PORT}/uploads/:filename`)
+if (!process.env.VERCEL) {
+  connectDB()
+    .then(() => {
+      console.log('Database connection successful')
+      app.listen(PORT, '0.0.0.0', () => {
+        console.log(`Server listening on http://0.0.0.0:${PORT}`)
+      })
     })
-  })
-  .catch((err) => {
-    console.error('Database connection failed:', err)
-    console.log('Server will still start for testing...')
-    const server = app.listen(PORT, () => {
-      console.log(`Server running on port ${PORT} (DB connection failed)`)
+    .catch((error) => {
+      console.error('Database connection failed:', error)
+      process.exitCode = 1
     })
-  })
-  .catch((err) => {
-    console.error("Database connection failed", err)
-  })
+
+
+export default app
