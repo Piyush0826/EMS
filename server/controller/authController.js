@@ -6,6 +6,10 @@ import nodemailer from 'nodemailer';
 
 // Create transporter function (lazy initialization)
 const getTransporter = () => {
+    if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+        throw new Error('EMAIL_USER and EMAIL_PASS must be configured in server/.env');
+    }
+
     return nodemailer.createTransport({
         host: 'smtp.gmail.com',
         port: 587,
@@ -102,7 +106,7 @@ const changePassword = async (req, res) => {
 
 const forgotPassword = async (req, res) => {
     try {
-        const { email } = req.body;
+        const email = req.body.email?.trim().toLowerCase();
 
         if (!email) {
             return res.status(400).json({ success: false, error: "Email is required" });
@@ -117,11 +121,6 @@ const forgotPassword = async (req, res) => {
         // Generate reset token
         const resetToken = crypto.randomBytes(32).toString('hex');
         const resetTokenExpiry = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
-
-        // Save token to user
-        user.resetToken = resetToken;
-        user.resetTokenExpiry = resetTokenExpiry;
-        await user.save();
 
         // Create reset link
         const frontendBaseUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
@@ -151,6 +150,11 @@ const forgotPassword = async (req, res) => {
 
         const transporter = getTransporter();
         await transporter.sendMail(mailOptions);
+
+        // Store the token only after the email provider accepts the message.
+        user.resetToken = resetToken;
+        user.resetTokenExpiry = resetTokenExpiry;
+        await user.save();
 
         return res.status(200).json({ 
             success: true, 
