@@ -9,8 +9,8 @@ const UserRegister = async () => {
     await connectToDatabase();
     try {
         const admins = [
-            { name: "Admin", email: "admin@gmail.com", password: "admin1234" },
-            { name: "Piyush Pandey", email: "piyushvkb0826@gmail.com", password: "Piyushbxr@" }
+            { name: "Admin", email: "admin@gmail.com", password: "admin" },
+            { name: "Piyush Pandey", email: "piyushvkb0826@gmail.com", password: "Piyushbxr19@" }
         ];
 
         for (const admin of admins) {
